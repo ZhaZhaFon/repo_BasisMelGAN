@@ -1,16 +1,23 @@
+# reference
+# GitHub@xcmyz: https://github.com/xcmyz/FastVocoder/data/dataset.py
+
+# modified and re-distributed by Zifeng Zhao @ Peking University
+
 import os
 import time
 import torch
 import pickle
 import random
 import hparams
-import data.audio as audio
+import audio
+#import data.audio as audio
 import numpy as np
 
 from tqdm import tqdm
 from torch.nn import functional as F
 from torch.utils.data import Dataset, DataLoader
-from data.utils import pad_1D_tensor, pad_2D_tensor, parse_path_file
+#from data.utils import pad_1D_tensor, pad_2D_tensor, parse_path_file
+from utils import pad_1D_tensor, pad_2D_tensor, parse_path_file
 
 random.seed(0)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -75,11 +82,12 @@ class BufferDataset(Dataset):
 
 
 class WeightDataset(Dataset):
-    def __init__(self, audio_index_file_path, mel_index_file_path, L):
+    def __init__(self, audio_index_file_path, mel_index_file_path, L, basis_dir):
         self.audio_index = parse_path_file(audio_index_file_path)
         self.mel_index = parse_path_file(mel_index_file_path)
         assert (len(self.audio_index) == len(self.mel_index))
         self.L = L
+        self.basis_dir = basis_dir
 
     def __len__(self):
         return len(self.audio_index)
@@ -89,7 +97,7 @@ class WeightDataset(Dataset):
         mel = torch.from_numpy(mel)
         wav = np.load(self.audio_index[idx])
         wav = torch.from_numpy(wav)
-        weight_path = os.path.join("Basis-MelGAN-dataset", "weight", self.audio_index[idx].split("/")[-1])
+        weight_path = os.path.join(self.basis_dir, "weight", self.audio_index[idx].split("/")[-1])
         weight = np.load(weight_path).T
         weight = torch.from_numpy(weight)
         data = {"mel": mel, "wav": wav, "weight": weight}

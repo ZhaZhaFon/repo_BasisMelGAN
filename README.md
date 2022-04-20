@@ -1,3 +1,20 @@
+# repo_BasisMelGAN
+
+[原始仓库链接](https://github.com/xcmyz/FastVocoder), 做了一些修改方便使用
+
+### 文件组织
+```
+    bin/
+        preprocess.py 处理Conv-TasNet生成的basis数据用于训练集
+    dataset/
+        basismelgan.py 处理Conv-TasNet生成的basis数据用于训练集
+    Makefile HOW-TO use
+    
+```
+
+---
+---
+
 # Fast (GAN Based Neural) Vocoder
 
 ## Todo

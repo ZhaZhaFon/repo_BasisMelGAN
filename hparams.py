@@ -24,8 +24,8 @@ train_size = 9000
 valid_size = 500
 eval_size = 100
 
-epochs = 100000  # need stop by your hands
-batch_size = 32
+epochs = 100 # 100000  # need stop by your hands
+batch_size = 16
 batch_expand_size = 8
 discriminator_train_start_steps = 100000
 n_warm_up_step = 0

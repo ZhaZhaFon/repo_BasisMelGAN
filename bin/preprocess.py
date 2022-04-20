@@ -1,7 +1,16 @@
+# reference
+# GitHub@xcmyz: https://github.com/xcmyz/FastVocoder/dataset/preprocess.py
+
+# modified and re-distributed by Zifeng Zhao @ Peking University
+
 import argparse
 import os
 import numpy as np
-import data.audio as audio
+import sys
+sys.path.append('.')
+sys.path.append('./data')
+#import data.audio as audio
+import audio
 import hparams as hp
 import random
 
@@ -11,7 +20,8 @@ from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import cpu_count
 
 CPU_NUM = cpu_count() // 2
-MULTI_PROCESS = True
+#MULTI_PROCESS = True
+MULTI_PROCESS = False
 
 
 def preprocess(data_path_file, save_path):
@@ -68,6 +78,8 @@ def preprocess_multiprocessing(data_path_file, save_path):
             mel_index.append(mel_filepath)
             futures.append(executor.submit(partial(kernel, wav_filepath, mel_filepath, new_wav_filepath)))
     length_list = [future.result() for future in tqdm(futures)]
+    from IPython import embed
+    embed()
     print(f"min length of mel spectrogram is {min(length_list)}.")
     return audio_index, mel_index
 
@@ -83,10 +95,10 @@ def write_file(audio_index, mel_index, index_list, file_name, audio_index_path, 
 
 def run_preprocess():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_path', type=str, default=os.path.join("dataset", "ljspeech.txt"))
-    parser.add_argument('--save_path', type=str, default=os.path.join("dataset", "processed"))
-    parser.add_argument('--audio_index_path', type=str, default=os.path.join("dataset", "audio"))
-    parser.add_argument('--mel_index_path', type=str, default=os.path.join("dataset", "mel"))
+    parser.add_argument('--data_path', required=True, type=str, default=os.path.join("dataset", "ljspeech.txt"))
+    parser.add_argument('--save_path', required=True, type=str, default=os.path.join("dataset", "processed"))
+    parser.add_argument('--audio_index_path', required=True, type=str, default=os.path.join("dataset", "audio"))
+    parser.add_argument('--mel_index_path', required=True, type=str, default=os.path.join("dataset", "mel"))
     args = parser.parse_args()
     audio_index, mel_index = 0, 0
     if MULTI_PROCESS:
@@ -105,3 +117,6 @@ def run_preprocess():
     write_file(audio_index, mel_index, index_list_train, "train", args.audio_index_path, args.mel_index_path)
     write_file(audio_index, mel_index, index_list_valid, "valid", args.audio_index_path, args.mel_index_path)
     write_file(audio_index, mel_index, index_list_eval, "eval", args.audio_index_path, args.mel_index_path)
+
+if __name__ == '__main__':
+    run_preprocess()

@@ -1,3 +1,8 @@
+# reference
+# GitHub@xcmyz: https://github.com/xcmyz/FastVocoder/bin/train.py
+
+# modified and re-distributed by Zifeng Zhao @ Peking University
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -9,6 +14,8 @@ import time
 import logging
 import tensorboardX
 import yaml
+import sys
+sys.path.append('.')
 import hparams as hp
 import numpy as np
 
@@ -23,10 +30,15 @@ from model.generator.basis_melgan import BasisMelGANGenerator
 from model.discriminator import Discriminator
 from model.generator.pqmf import PQMF
 
-from data.dataset import BufferDataset, WeightDataset, DataLoader
-from data.dataset import load_data_to_buffer, collate_fn_tensor, collate_fn_tensor_valid
-from data.utils import get_param_num
-from data.audio import save_wav
+sys.path.append('./data')
+#from data.dataset import BufferDataset, WeightDataset, DataLoader
+#from data.dataset import load_data_to_buffer, collate_fn_tensor, collate_fn_tensor_valid
+#from data.utils import get_param_num
+#from data.audio import save_wav
+from dataset import BufferDataset, WeightDataset, DataLoader
+from dataset import load_data_to_buffer, collate_fn_tensor, collate_fn_tensor_valid
+from utils import get_param_num
+from audio import save_wav
 
 from tensorboardX import SummaryWriter
 
@@ -42,8 +54,8 @@ try:
     import apex
     from apex import amp
 except:
-    logger.warning("Cannot load Apex (Using apex to accelerate training.)")
-
+    #logger.warning("Cannot load Apex (Using apex to accelerate training.)")
+    pass
 
 def trainer(model, discriminator,
             optimizer, discriminator_optimizer,
@@ -295,7 +307,7 @@ def run(args):
                                           transposedconv=config["transposedconv"],
                                           bias=config["bias"]).to(device)
     elif args.model_name == "basis-melgan":
-        basis_signal_weight = np.load(os.path.join("Basis-MelGAN-dataset", "basis_signal_weight.npy"))
+        basis_signal_weight = np.load(os.path.join(args.basis_dir, "basis_signal_weight.npy"))
         basis_signal_weight = torch.from_numpy(basis_signal_weight)
         model = BasisMelGANGenerator(basis_signal_weight=basis_signal_weight,
                                      L=config["L"],
@@ -353,9 +365,11 @@ def run(args):
     logger.info("Defined Optimizer and Loss Function.")
 
     # Load checkpoint if exists
-    os.makedirs(hp.checkpoint_path, exist_ok=True)
+    #os.makedirs(hp.checkpoint_path, exist_ok=True)
+    os.makedirs(args.save_dir, exist_ok=True)
     current_checkpoint_path = str(datetime.now()).replace(" ", "-").replace(":", "-").replace(".", "-")
-    current_checkpoint_path = os.path.join(hp.checkpoint_path, current_checkpoint_path)
+    #current_checkpoint_path = os.path.join(hp.checkpoint_path, current_checkpoint_path)
+    current_checkpoint_path = os.path.join(args.save_dir, current_checkpoint_path)
     try:
         checkpoint = torch.load(os.path.join(args.checkpoint_path), map_location=torch.device(device))
         model.load_state_dict(checkpoint['model'])
@@ -373,10 +387,13 @@ def run(args):
         os.makedirs(current_checkpoint_path, exist_ok=True)
 
     # Init logger
-    os.makedirs(hp.logger_path, exist_ok=True)
+    #os.makedirs(hp.logger_path, exist_ok=True)
+    os.makedirs(os.path.join(args.save_dir, 'logging'), exist_ok=True)
     current_logger_path = str(datetime.now()).replace(" ", "-").replace(":", "-").replace(".", "-")
-    writer = SummaryWriter(os.path.join(hp.tensorboard_path, current_logger_path))
-    current_logger_path = os.path.join(hp.logger_path, current_logger_path)
+    #writer = SummaryWriter(os.path.join(hp.tensorboard_path, current_logger_path))
+    writer = SummaryWriter(os.path.join(os.path.join(args.save_dir, 'tensorboard'), current_logger_path))
+    #current_logger_path = os.path.join(hp.logger_path, current_logger_path)
+    current_logger_path = os.path.join(os.path.join(args.save_dir, 'logging'), current_logger_path)
     os.makedirs(current_logger_path, exist_ok=True)
 
     # Get buffer
@@ -388,8 +405,8 @@ def run(args):
 
     # Get dataset
     if args.model_name == "basis-melgan":
-        dataset = WeightDataset(args.audio_index_path, args.mel_index_path, config["L"])
-        valid_dataset = WeightDataset(args.audio_index_valid_path, args.mel_index_valid_path, config["L"])
+        dataset = WeightDataset(args.audio_index_path, args.mel_index_path, config["L"], args.basis_dir)
+        valid_dataset = WeightDataset(args.audio_index_valid_path, args.mel_index_valid_path, config["L"], args.basis_dir)
     else:
         dataset = BufferDataset(buffer)
         valid_dataset = BufferDataset(valid_buffer)
@@ -494,6 +511,12 @@ def run_train():
 
     parser.add_argument("--use_scheduler", type=int, default=0)
     parser.add_argument("--mixprecision", type=int, default=0)
+    
+    parser.add_argument('--save_dir', required=True, type=str, help='path to save experiments')
+    parser.add_argument('--basis_dir', required=True, type=str, help='path to save basis')
 
     args = parser.parse_args()
     run(args)
+    
+if __name__ == '__main__':
+    run_train()
