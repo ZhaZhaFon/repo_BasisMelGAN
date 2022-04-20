@@ -6,10 +6,13 @@
 ```
     bin/
         preprocess.py 处理Conv-TasNet生成的basis数据用于训练集
+        train.py 训练循环
+    data/
+        audio.py 音频处理实现
+        dataset.py 数据集处理实现
     dataset/
         basismelgan.py 处理Conv-TasNet生成的basis数据用于训练集
     Makefile HOW-TO use
-    
 ```
 
 ---
